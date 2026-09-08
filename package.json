@@ -1,0 +1,60 @@
+{
+  "name": "react-i18n-inspector",
+  "version": "0.1.0",
+  "description": "Hover any element to see which React component renders it — plus the i18n translation key behind the text, so you can grep straight to the source.",
+  "keywords": [
+    "react",
+    "i18n",
+    "i18next", 
+    "react-intl",
+    "devtools",
+    "inspector",
+    "translation",
+    "locale",
+    "component",
+    "debug",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "author": "juyeong-s",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "react": "^18.3.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juyeong-s/react-i18n-inspector.git"
+  },
+  "homepage": "https://github.com/juyeong-s/react-i18n-inspector#readme",
+  "bugs": {
+    "url": "https://github.com/juyeong-s/react-i18n-inspector/issues"
+  }
+}
