@@ -32,6 +32,13 @@ const STYLE = `
   font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
   z-index: 2;
 }
+/* Pinned: take pointer events back so the text can be selected and copied. */
+.card.pinned {
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  border-color: #58a6ff;
+}
 .name { color: #7ee787; font-weight: 600; }
 .anc  { color: #8b949e; }
 .anc::before { content: '↖ '; }
@@ -69,6 +76,9 @@ export class Overlay {
   private root: ShadowRoot;
   private box: HTMLDivElement;
   private card: HTMLDivElement;
+  private pinTarget: Element | null = null;
+  private pinRect: DOMRect | null = null;
+  private pinCard = { left: 0, top: 0 };
 
   constructor() {
     this.host = document.createElement('div');
@@ -106,13 +116,17 @@ export class Overlay {
   hide(): void {
     this.box.style.display = 'none';
     this.card.style.display = 'none';
+    this.card.classList.remove('pinned');
+    this.pinTarget = null;
+    this.pinRect = null;
   }
 
   render(
     target: Element,
     chain: ComponentInfo[],
     keys: string[],
-    mouse: { x: number; y: number }
+    mouse: { x: number; y: number },
+    pinned = false
   ): void {
     const rect = target.getBoundingClientRect();
 
@@ -141,9 +155,14 @@ export class Overlay {
       lines.push(`<div class="keys"><span class="label">i18n</span> ${shown}</div>`);
     }
 
-    lines.push('<div class="hint">click to copy &middot; esc to exit</div>');
+    lines.push(
+      pinned
+        ? '<div class="hint">esc or click outside to close</div>'
+        : '<div class="hint">click to copy &middot; esc to exit</div>'
+    );
 
     this.card.innerHTML = lines.join('');
+    this.card.classList.toggle('pinned', pinned);
     this.card.style.display = 'block';
 
     // Flip near viewport edges so the card never runs off screen
@@ -151,8 +170,34 @@ export class Overlay {
     const ch = this.card.offsetHeight;
     const left = mouse.x + 16 + cw > window.innerWidth ? mouse.x - cw - 16 : mouse.x + 16;
     const top = mouse.y + 16 + ch > window.innerHeight ? mouse.y - ch - 16 : mouse.y + 16;
-    this.card.style.left = `${Math.max(8, left)}px`;
-    this.card.style.top = `${Math.max(8, top)}px`;
+    const cardLeft = Math.max(8, left);
+    const cardTop = Math.max(8, top);
+    this.card.style.left = `${cardLeft}px`;
+    this.card.style.top = `${cardTop}px`;
+
+    this.pinTarget = pinned ? target : null;
+    this.pinRect = pinned ? rect : null;
+    this.pinCard = { left: cardLeft, top: cardTop };
+  }
+
+  /**
+   * Re-place a pinned card and its highlight after the page scrolls, so the
+   * pair keeps tracking the element it was pinned to instead of drifting.
+   */
+  follow(): void {
+    const target = this.pinTarget;
+    const base = this.pinRect;
+    if (!target || !base) return;
+
+    const rect = target.getBoundingClientRect();
+    Object.assign(this.box.style, {
+      left: `${rect.left}px`,
+      top: `${rect.top}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+    });
+    this.card.style.left = `${this.pinCard.left + (rect.left - base.left)}px`;
+    this.card.style.top = `${this.pinCard.top + (rect.top - base.top)}px`;
   }
 
   toast(message: string): void {

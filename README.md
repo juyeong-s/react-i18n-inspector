@@ -13,7 +13,7 @@ is localized, you get the translation key too.
 │ ─────────────────────────── │
 │ i18n  order.confirm.save    │
 │ ─────────────────────────── │
-│ click to copy · esc to exit │
+│ click to pin · esc to close │
 └─────────────────────────────┘
 ```
 

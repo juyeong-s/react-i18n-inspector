@@ -1,11 +1,11 @@
 {
   "name": "react-i18n-inspector",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Hover any element to see which React component renders it — plus the i18n translation key behind the text, so you can grep straight to the source.",
   "keywords": [
     "react",
     "i18n",
-    "i18next", 
+    "i18next",
     "react-intl",
     "devtools",
     "inspector",

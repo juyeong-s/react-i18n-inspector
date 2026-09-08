@@ -7,7 +7,10 @@ export interface PickerOptions {
   hotkey?: string;
   /** Called on pick, after the default copy-to-clipboard. */
   onPick?: (result: PickResult) => void;
-  /** Copy the component name to the clipboard on pick. Default true. */
+  /**
+   * Copy on pick: the first i18n key when one is found, otherwise the
+   * component name. Default true.
+   */
   copy?: boolean;
   /** Log the full result to the console on pick. Default true. */
   log?: boolean;
@@ -34,11 +37,23 @@ function parseHotkey(hotkey: string): ParsedHotkey {
 const isMac =
   typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
+/**
+ * The overlay lives in a shadow root, so `event.target` is retargeted to the
+ * host. `composedPath` still sees through it, which is what lets us tell a
+ * click on the pinned card from a click outside it.
+ */
+function isOverlayEvent(e: Event): boolean {
+  return e
+    .composedPath()
+    .some((n) => n instanceof Element && n.hasAttribute('data-rcp'));
+}
+
 export class Picker {
   private overlay = new Overlay();
   private opts: Required<Omit<PickerOptions, 'onPick'>> & Pick<PickerOptions, 'onPick'>;
   private hotkey: ParsedHotkey;
   private active = false;
+  private pinned = false;
   private disposed = false;
 
   constructor(options: PickerOptions = {}) {
@@ -79,6 +94,7 @@ export class Picker {
   start(): void {
     if (this.active || this.disposed) return;
     this.active = true;
+    this.pinned = false;
 
     if (!hasReact()) {
       console.warn(
@@ -97,6 +113,7 @@ export class Picker {
   stop(): void {
     if (!this.active) return;
     this.active = false;
+    this.pinned = false;
     document.removeEventListener('mousemove', this.onMove, true);
     document.removeEventListener('click', this.onClick, true);
     document.removeEventListener('scroll', this.onScroll, true);
@@ -120,6 +137,10 @@ export class Picker {
   }
 
   private onScroll = (): void => {
+    if (this.pinned) {
+      this.overlay.follow();
+      return;
+    }
     this.overlay.hide();
   };
 
@@ -138,6 +159,13 @@ export class Picker {
   private onClick = (e: MouseEvent): void => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Once pinned the card is interactive, so a click that reaches it is the
+    // user reading or selecting its text. Anything else dismisses the pick.
+    if (this.pinned) {
+      if (!isOverlayEvent(e)) this.stop();
+      return;
+    }
 
     const el = this.targetAt(e.clientX, e.clientY);
     if (!el) return;
@@ -174,6 +202,21 @@ export class Picker {
     }
 
     this.opts.onPick?.(result);
-    this.stop();
+    this.pin(el, result, { x: e.clientX, y: e.clientY });
   };
+
+  /**
+   * Freeze the card where it is so it can be read and its text selected.
+   * Hover tracking stops; Escape or a click outside the card ends the pick.
+   */
+  private pin(
+    el: Element,
+    result: PickResult,
+    mouse: { x: number; y: number }
+  ): void {
+    this.pinned = true;
+    document.removeEventListener('mousemove', this.onMove, true);
+    document.documentElement.style.cursor = '';
+    this.overlay.render(el, result.chain, result.i18nKeys, mouse, true);
+  }
 }
